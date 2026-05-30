@@ -112,30 +112,27 @@ async function saveRolesYUnidades(pool, usuarioId, roles) {
   await pool.request().input('uid', sql.NVarChar, usuarioId).query('DELETE FROM usuarioRoles WHERE usuarioId=@uid');
   for (const r of roles) {
     const resRol = await pool.request()
-      .input('id', sql.NVarChar, randomUUID())
       .input('uid', sql.NVarChar, usuarioId)
       .input('rolId', sql.Int, parseInt(r.rolId))
-      .query('INSERT INTO usuarioRoles (id,usuarioId,rolId) VALUES (@id,@uid,@rolId)');
+      .query('INSERT INTO usuarioRoles (usuarioId,rolId) VALUES (@uid,@rolId)');
     if (!resRol.rowsAffected[0]) {
       const e = new Error('No se pudo guardar el rol ' + r.rolId + ' en la base de datos.'); e.status = 500; throw e;
     }
     if (r.todasUnidades) {
       const resUni = await pool.request()
-        .input('id', sql.NVarChar, randomUUID())
         .input('uid', sql.NVarChar, usuarioId)
         .input('rolId', sql.Int, parseInt(r.rolId))
-        .query('INSERT INTO usuarioUnidades (id,usuarioId,rolId,todasUnidades,unidadId) VALUES (@id,@uid,@rolId,1,NULL)');
+        .query('INSERT INTO usuarioUnidades (usuarioId,rolId,todasUnidades,unidadId) VALUES (@uid,@rolId,1,NULL)');
       if (!resUni.rowsAffected[0]) {
         const e = new Error('No se pudo guardar la unidad del rol ' + r.rolId + '.'); e.status = 500; throw e;
       }
     } else {
       for (const uniId of (r.unidades || [])) {
         const resUni = await pool.request()
-          .input('id', sql.NVarChar, randomUUID())
           .input('uid', sql.NVarChar, usuarioId)
           .input('rolId', sql.Int, parseInt(r.rolId))
           .input('uniId', sql.Int, Number(uniId))
-          .query('INSERT INTO usuarioUnidades (id,usuarioId,rolId,todasUnidades,unidadId) VALUES (@id,@uid,@rolId,0,@uniId)');
+          .query('INSERT INTO usuarioUnidades (usuarioId,rolId,todasUnidades,unidadId) VALUES (@uid,@rolId,0,@uniId)');
         if (!resUni.rowsAffected[0]) {
           const e = new Error('No se pudo guardar la unidad ' + uniId + ' del rol ' + r.rolId + '.'); e.status = 500; throw e;
         }
