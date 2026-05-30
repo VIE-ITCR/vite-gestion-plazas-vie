@@ -1,0 +1,73 @@
+export const NAVY = "#1e3a5f";
+  export const BLUE = "#2563eb";
+  export const TEAL = "#0d9488";
+  export const GREEN = "#16a34a";
+  export const AMBER = "#d97706";
+  export const RED = "#dc2626";
+
+  export const CATS = ["Equipo", "Operativo", "Estudiantes"];
+  export const CAT_COLORS = { Equipo: BLUE, Operativo: TEAL, Estudiantes: "#7c3aed" };
+  export const ESTADO_COLORS = {
+    Permanente: ["#dbeafe", "#1e40af"],
+    Temporal: ["#fef3c7", "#92400e"],
+    Consolidado: ["#d1fae5", "#065f46"],
+    "Ley de Cemento": ["#ede9fe", "#5b21b6"]
+  };
+  export const TIPO_COLORS = [BLUE, TEAL, "#7c3aed", AMBER, GREEN];
+  export const CHART_COLORS = [BLUE, TEAL, "#7c3aed", AMBER, GREEN, RED, "#0891b2", "#db2777", "#65a30d", "#ea580c"];
+  export const TABS = [
+    { k: "resumen",        l: "Resumen",        ic: "📊", grp: null },
+    { k: "disponibilidad", l: "Disponibilidad", ic: "⏱️", grp: null },
+    { k: "alertas",        l: "Alertas",        ic: "🔔", grp: "Gestión" },
+    { k: "catalogos",      l: "Catálogos",      ic: "📚", grp: "Gestión" },
+    { k: "nombramientos",  l: "Nombramientos",  ic: "📝", grp: "Gestión" },
+    { k: "plazas",         l: "Plazas",         ic: "📋", grp: "Gestión" },
+    { k: "presupuesto",    l: "Presupuesto",    ic: "💰", grp: "Gestión" },
+    { k: "proyectos",      l: "Proyectos",      ic: "📁", grp: "Gestión" },
+    { k: "repProf",        l: "Rep. Profesor",  ic: "👤", grp: "Reportes" },
+    { k: "reportes",       l: "Reportes",       ic: "📈", grp: "Reportes" },
+    { k: "bitacora",       l: "Bitácora",       ic: "📔", grp: "Sistema" },
+    { k: "datos",          l: "Datos",          ic: "⬇️", grp: "Sistema" },
+    { k: "gantt",          l: "Gantt",          ic: "📅", grp: "Sistema" },
+    { k: "usuarios",       l: "Usuarios",       ic: "👥", grp: "Sistema" },
+  ];
+  export const GRP_ORDER = ['Gestión', 'Reportes', 'Sistema'];
+
+  export const TABS_PERMS_LIST = [
+    { k: 'resumen', l: 'Resumen' },
+    { k: 'cat_unidades', l: 'Unidades', grp: 'Catálogos' }, { k: 'cat_profesores', l: 'Profesores', grp: 'Catálogos' },
+    { k: 'cat_tipos', l: 'Tipos de Actividad', grp: 'Catálogos' }, { k: 'cat_actividades', l: 'Actividades de Plazas', grp: 'Catálogos' },
+    { k: 'cat_tiposNom', l: 'Tipos de Nombramiento', grp: 'Catálogos' }, { k: 'cat_sedes', l: 'Sedes', grp: 'Catálogos' },
+    { k: 'cat_verificaciones', l: 'Verificación', grp: 'Catálogos' }, { k: 'cat_cfs', l: 'CF de Plazas', grp: 'Catálogos' },
+    { k: 'cat_vigencia', l: 'Vigencia de Plazas', grp: 'Catálogos' },
+    { k: 'cat_nomEstado', l: 'Estado de Nombramientos', grp: 'Catálogos' },
+    { k: 'cat_vinculacion', l: 'Vinculación', grp: 'Catálogos' },
+    { k: 'cat_fuentes', l: 'Fuentes', grp: 'Catálogos' },
+    { k: 'cat_gestores', l: 'Gestores', grp: 'Catálogos' },
+    { k: 'proyectos', l: 'Proyectos' }, { k: 'plazas', l: 'Plazas' }, { k: 'nombramientos', l: 'Nombramientos' },
+    { k: 'disponibilidad', l: 'Disponibilidad' }, { k: 'alertas', l: 'Alertas' }, { k: 'presupuesto', l: 'Presupuesto' },
+    { k: 'reportes', l: 'Reportes' }, { k: 'repProf', l: 'Rep. Profesor' }, { k: 'datos', l: 'Datos' },
+    { k: 'bitacora', l: 'Bitácora' }, { k: 'gantt', l: 'Gantt' },
+  ];
+
+  export const PERM_OPTS = [
+    { v: 'write', l: 'Escritura', c: '#16a34a' },
+    { v: 'read', l: 'Lectura', c: '#d97706' },
+    { v: 'none', l: 'Sin acceso', c: '#94a3b8' },
+  ];
+
+  export const SUBTABS_CAT = [
+    { k: "unidades", l: "🏛️ Unidades", pk: "cat_unidades" },
+    { k: "profesores", l: "👨‍Profesores", pk: "cat_profesores" },
+    { k: "tipos", l: "🏷️ Tipos de Actividad", pk: "cat_tipos" },
+    { k: "actividades", l: "🗂️ Actividades de Plazas", pk: "cat_actividades" },
+    { k: "tiposNom", l: "📄 Tipos de Nombramiento", pk: "cat_tiposNom" },
+    { k: "sedes", l: "📍 Sedes", pk: "cat_sedes" },
+    { k: "verificaciones", l: "✅  Verificación", pk: "cat_verificaciones" },
+    { k: "cfs", l: "🏷️ CF de Plazas", pk: "cat_cfs" },
+    { k: "vigencia", l: "📋 Vigencia de Plazas", pk: "cat_vigencia" },
+    { k: "nomEstado", l: "📝 Estado de Nombramientos", pk: "cat_nomEstado" },
+    { k: "vinculacion", l: "🔗 Vinculación", pk: "cat_vinculacion" },
+    { k: "fuentes", l: "💰 Fuentes", pk: "cat_fuentes" },
+    { k: "gestores", l: "👤 Gestores", pk: "cat_gestores" },
+  ];
