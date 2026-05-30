@@ -1,4 +1,4 @@
- const API = 'https://gestionvie-api-gtauhffre0dge2c2.australiaeast-01.azurewebsites.net/api';
+ const API = 'vitevie-erbmf0a8dgg4fhec.australiaeast-01.azurewebsites.net';
 
   export let _authToken = sessionStorage.getItem('_jwt') || null;
   export let _currentUser = JSON.parse(sessionStorage.getItem('_user') || 'null');
