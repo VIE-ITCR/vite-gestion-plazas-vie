@@ -105,12 +105,12 @@ function AppInner() {
         setUsuariosList(uList)
         if (myProfile) {
           const profileRolIds = (myProfile.roles || []).length > 0
-            ? myProfile.roles.map(rf => rf.rolId)
-            : myProfile.rolId ? [myProfile.rolId] : []
+            ? myProfile.roles.map(rf => Number(rf.rolId) || rf.rolId)
+            : myProfile.rolId ? [Number(myProfile.rolId) || myProfile.rolId] : []
           const ORDER = { write: 2, read: 1, none: 0 }
           const merged = {}
           for (const rolId of profileRolIds) {
-            const role = rList.find(r => r.id === rolId)
+            const role = rList.find(r => Number(r.id) === Number(rolId) || String(r.id) === String(rolId))
             if (!role) continue
             const sp = typeof role.permisos === 'string' ? JSON.parse(role.permisos) : role.permisos || {}
             const def = (role.sistema && sp.usuarios === 'write') ? 'write' : 'none'

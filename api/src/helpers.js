@@ -1,4 +1,4 @@
-const ALLOWED_ORIGIN = 'https://stpplazasvie.z8.web.core.windows.net';
+const ALLOWED_ORIGIN = '*';
 const CORS = {
   'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
