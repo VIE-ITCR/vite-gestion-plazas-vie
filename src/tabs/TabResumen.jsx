@@ -848,13 +848,15 @@ export function TabResumen({ data, today, totalH, asigH, a30, hUsadas, presupues
   const totalProyecto = (proyId, anios) => r2(anios.reduce((s, a) => s + totalAnio(proyId, a), 0))
   const [resumenSec, setResumenSec] = useState('all')
   const libreH = r2(totalH - asigH)
-  const activosProyecto = data.proyectos.filter(p => p.estado === 'Activo')
+  const tiposContabIds = new Set(data.tiposActividad.filter(t => (t.contabilizar || 'Sí') !== 'No').map(t => t.id))
+  const proyectosContab = data.proyectos.filter(p => tiposContabIds.has(p.tipoId))
+  const activosProyecto = proyectosContab.filter(p => p.estado === 'Activo')
   const pyPorTipo = data.tiposActividad.map((t, i) => ({ label: t.nombre, value: activosProyecto.filter(p => p.tipoId === t.id).length, color: TIPO_COLORS[i % TIPO_COLORS.length] })).filter(x => x.value > 0)
   const subtiposMap = {}; activosProyecto.forEach(p => { const k = p.subcategoria || 'Sin subcategoría'; subtiposMap[k] = (subtiposMap[k] || 0) + 1 })
   const pyPorSub = Object.entries(subtiposMap).map(([k, v], i) => ({ label: k, value: v, color: CHART_COLORS[i % CHART_COLORS.length] }))
-  const allAnios = [...new Set(data.proyectos.flatMap(p => getAnios(p)))].sort((a, b) => a - b)
-  const totalPresup = r2(data.proyectos.reduce((s, p) => s + totalProyecto(p.id, getAnios(p)), 0))
-  const porCuenta = CATS.map(cat => { const ck = cat.toLowerCase(); return { cat, ck, color: CAT_COLORS[cat], porAnio: allAnios.map(a => ({ anio: a, val: r2(data.proyectos.reduce((s, p) => s + totalCat(p.id, a, ck), 0)) })), tot: r2(data.proyectos.reduce((s, p) => s + r2(getAnios(p).reduce((ss, a) => ss + totalCat(p.id, a, ck), 0)), 0)) } })
+  const allAnios = [...new Set(proyectosContab.flatMap(p => getAnios(p)))].sort((a, b) => a - b)
+  const totalPresup = r2(proyectosContab.reduce((s, p) => s + totalProyecto(p.id, getAnios(p)), 0))
+  const porCuenta = CATS.map(cat => { const ck = cat.toLowerCase(); return { cat, ck, color: CAT_COLORS[cat], porAnio: allAnios.map(a => ({ anio: a, val: r2(proyectosContab.reduce((s, p) => s + totalCat(p.id, a, ck), 0)) })), tot: r2(proyectosContab.reduce((s, p) => s + r2(getAnios(p).reduce((ss, a) => ss + totalCat(p.id, a, ck), 0)), 0)) } })
   const maxBarVal = Math.max(...allAnios.map(a => porCuenta.reduce((s, c) => s + (c.porAnio.find(x => x.anio === a)?.val || 0), 0)), 1)
   const ocupPlazas = data.plazas.map(p => { const usado = hUsadas(p.id); return { ...p, usado, libre: r2(p.horasSemanales - usado), pct: p.horasSemanales > 0 ? Math.round((usado / p.horasSemanales) * 100) : 0 } })
   const fh = v => +parseFloat(v || 0).toFixed(2)
@@ -867,11 +869,11 @@ export function TabResumen({ data, today, totalH, asigH, a30, hUsadas, presupues
   const fuentesList = data.fuentes || []
   const gFuenteR = id => fuentesList.find(f => f.id === Number(id))
   const pyPorFuente = (() => { const arr = fuentesList.map((f, i) => ({ label: f.nombre, value: activosProyecto.filter(p => Number(p.fuenteId) === f.id).length, color: CHART_COLORS[i % CHART_COLORS.length] })).filter(x => x.value > 0); const sf = activosProyecto.filter(p => !gFuenteR(p.fuenteId)).length; if (sf > 0) arr.push({ label: 'Sin fuente', value: sf, color: '#cbd5e1' }); return arr })()
-  const horasPorFuente = fuentesList.map((f, i) => { const ids = new Set(data.proyectos.filter(p => Number(p.fuenteId) === f.id).map(p => p.id)); const h = r2(data.nombramientos.filter(n => n.estado === 'Activo' && ids.has(n.proyectoId)).reduce((s, n) => s + nh(n.horas), 0)); return { label: f.nombre, value: h, color: CHART_COLORS[i % CHART_COLORS.length] } }).filter(x => x.value > 0)
+  const horasPorFuente = fuentesList.map((f, i) => { const ids = new Set(proyectosContab.filter(p => Number(p.fuenteId) === f.id).map(p => p.id)); const h = r2(data.nombramientos.filter(n => n.estado === 'Activo' && ids.has(n.proyectoId)).reduce((s, n) => s + nh(n.horas), 0)); return { label: f.nombre, value: h, color: CHART_COLORS[i % CHART_COLORS.length] } }).filter(x => x.value > 0)
   const vincList = data.vinculaciones || []
   const gVincR = id => vincList.find(v => v.id === Number(id))
   const pyPorVinc = (() => { const arr = vincList.map((v, i) => ({ label: v.nombre, value: activosProyecto.filter(p => Number(p.vinculacionId) === v.id).length, color: CHART_COLORS[(i + 5) % CHART_COLORS.length] })).filter(x => x.value > 0); const sv = activosProyecto.filter(p => !gVincR(p.vinculacionId)).length; if (sv > 0) arr.push({ label: 'Sin vinculación', value: sv, color: '#cbd5e1' }); return arr })()
-  const horasPorVinc = vincList.map((v, i) => { const ids = new Set(data.proyectos.filter(p => Number(p.vinculacionId) === v.id).map(p => p.id)); const h = r2(data.nombramientos.filter(n => n.estado === 'Activo' && ids.has(n.proyectoId)).reduce((s, n) => s + nh(n.horas), 0)); return { label: v.nombre, value: h, color: CHART_COLORS[(i + 5) % CHART_COLORS.length] } }).filter(x => x.value > 0)
+  const horasPorVinc = vincList.map((v, i) => { const ids = new Set(proyectosContab.filter(p => Number(p.vinculacionId) === v.id).map(p => p.id)); const h = r2(data.nombramientos.filter(n => n.estado === 'Activo' && ids.has(n.proyectoId)).reduce((s, n) => s + nh(n.horas), 0)); return { label: v.nombre, value: h, color: CHART_COLORS[(i + 5) % CHART_COLORS.length] } }).filter(x => x.value > 0)
 
   const exportResumen = () => {
     const wb = XLSX.utils.book_new()
@@ -1079,11 +1081,11 @@ export function TabResumen({ data, today, totalH, asigH, a30, hUsadas, presupues
               </div><div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>{tipos.map(t => (<div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: t.color, display: 'inline-block' }} /><span style={{ color: '#555' }}>{t.nombre}</span></div>))}</div></div>)
             })()}
           </Card>
-          <ProyActivosPorSubAnioCard data={data} />
-          <ProyActivosPorUnidadTipoCard data={data} />
-          <ProyActivosPorUnidadSubCard data={data} />
-          <ProyInicioUnidadTipoCard data={data} />
-          <ProyInicioUnidadSubCard data={data} />
+          <ProyActivosPorSubAnioCard data={{ ...data, proyectos: proyectosContab }} />
+          <ProyActivosPorUnidadTipoCard data={{ ...data, proyectos: proyectosContab }} />
+          <ProyActivosPorUnidadSubCard data={{ ...data, proyectos: proyectosContab }} />
+          <ProyInicioUnidadTipoCard data={{ ...data, proyectos: proyectosContab }} />
+          <ProyInicioUnidadSubCard data={{ ...data, proyectos: proyectosContab }} />
         </>}
         {(resumenSec === 'all' || resumenSec === 'fuentes') && <>
           <div style={{ gridColumn: '1/-1', borderBottom: '2px solid #e0e8f0', paddingBottom: 8, marginTop: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
