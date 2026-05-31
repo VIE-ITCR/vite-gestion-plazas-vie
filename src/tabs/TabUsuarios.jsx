@@ -41,13 +41,15 @@ export function TabUsuarios({ roles, usuariosList, currentUid, setUsuariosList, 
   const openNewUser = () => { setUModal('new'); setUForm({ activo: true }); setURolesForm([]); setShowUPwd(false) }
   const openEditUser = u => { setUModal('edit'); setUForm({ ...u }); setURolesForm(u.roles ? [...u.roles] : []) }
 
+  const normId = id => Number(id) || id
   const addRolToForm = rolId => {
-    if (!rolId || uRolesForm.some(r => r.rolId === rolId)) return
-    const rol = roles.find(r => r.id === rolId)
-    setURolesForm(p => [...p, { rolId, todasUnidades: !rol?.soloRegistrosPropios, unidades: [] }])
+    const nId = normId(rolId)
+    if (!nId || uRolesForm.some(r => normId(r.rolId) === nId)) return
+    const rol = roles.find(r => normId(r.id) === nId)
+    setURolesForm(p => [...p, { rolId: nId, todasUnidades: !rol?.soloRegistrosPropios, unidades: [] }])
   }
-  const removeRolFromForm = rolId => setURolesForm(p => p.filter(r => r.rolId !== rolId))
-  const toggleTodasUnidades = (rolId, val) => setURolesForm(p => p.map(r => r.rolId === rolId ? { ...r, todasUnidades: val, unidades: [] } : r))
+  const removeRolFromForm = rolId => setURolesForm(p => p.filter(r => normId(r.rolId) !== normId(rolId)))
+  const toggleTodasUnidades = (rolId, val) => setURolesForm(p => p.map(r => normId(r.rolId) === normId(rolId) ? { ...r, todasUnidades: val, unidades: [] } : r))
   const toggleUnidadInForm = (rolId, unidadId) => setURolesForm(p => p.map(r => {
     if (r.rolId !== rolId) return r
     const has = r.unidades.includes(unidadId)
@@ -111,7 +113,7 @@ export function TabUsuarios({ roles, usuariosList, currentUid, setUsuariosList, 
   }
 
   const delRole = async id => {
-    if (usuariosList.some(u => (u.roles || []).some(rf => rf.rolId === id) || u.rolId === id)) {
+    if (usuariosList.some(u => (u.roles || []).some(rf => normId(rf.rolId) === normId(id)) || normId(u.rolId) === normId(id))) {
       toast.error('No se puede eliminar: hay usuarios asignados a este rol.'); return
     }
     if (!await showConfirm('¿Eliminar rol "' + roles.find(r => r.id === id)?.nombre + '"?', { danger: true, okText: 'Eliminar' })) return
@@ -149,7 +151,7 @@ export function TabUsuarios({ roles, usuariosList, currentUid, setUsuariosList, 
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {filtUsers.map(u => {
-              const uroles = (u.roles || []).map(rf => roles.find(r => r.id === rf.rolId)).filter(Boolean)
+              const uroles = (u.roles || []).map(rf => roles.find(r => normId(r.id) === normId(rf.rolId))).filter(Boolean)
               return (
                 <div key={u.uid} style={{ background: '#fff', borderRadius: 12, padding: '12px 16px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                   <div style={{ width: 38, height: 38, borderRadius: 19, background: NAVY, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 15, flexShrink: 0 }}>
@@ -214,7 +216,7 @@ export function TabUsuarios({ roles, usuariosList, currentUid, setUsuariosList, 
                 <div style={{ marginBottom: 11 }}>
                   <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#555', textTransform: 'uppercase', marginBottom: 6 }}>Roles asignados</label>
                   {uRolesForm.map(rf => {
-                    const rol = roles.find(r => r.id === rf.rolId)
+                    const rol = roles.find(r => normId(r.id) === normId(rf.rolId))
                     return (
                       <div key={rf.rolId} style={{ marginBottom: 8, border: '1px solid #e0e7ef', borderRadius: 8, padding: '10px 12px', background: '#f8faff' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: rol?.soloRegistrosPropios ? 0 : 8 }}>
@@ -251,7 +253,7 @@ export function TabUsuarios({ roles, usuariosList, currentUid, setUsuariosList, 
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4 }}>
                     <select style={{ ...inp, flex: 1 }} defaultValue="" onChange={e => { addRolToForm(e.target.value); e.target.value = '' }}>
                       <option value="">+ Agregar rol...</option>
-                      {roles.filter(r => !uRolesForm.some(rf => rf.rolId === r.id)).map(r => (
+                      {roles.filter(r => !uRolesForm.some(rf => normId(rf.rolId) === normId(r.id))).map(r => (
                         <option key={r.id} value={r.id}>{r.nombre}</option>
                       ))}
                     </select>
@@ -293,7 +295,7 @@ export function TabUsuarios({ roles, usuariosList, currentUid, setUsuariosList, 
                     {r.sistema && <span style={{ background: '#ede9fe', color: '#5b21b6', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20 }}>Sistema</span>}
                     {r.soloRegistrosPropios && <span style={{ background: '#fef3c7', color: AMBER, fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20 }}>Solo propios</span>}
                     <span style={{ background: '#f0f4f8', color: '#888', fontSize: 10, padding: '2px 8px', borderRadius: 20 }}>
-                      {usuariosList.filter(u => (u.roles || []).some(rf => rf.rolId === r.id) || u.rolId === r.id).length} usuarios
+                      {usuariosList.filter(u => (u.roles || []).some(rf => normId(rf.rolId) === normId(r.id)) || normId(u.rolId) === normId(r.id)).length} usuarios
                     </span>
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
