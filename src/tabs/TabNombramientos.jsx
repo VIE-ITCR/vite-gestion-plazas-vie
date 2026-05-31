@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { NAVY, BLUE, RED, AMBER } from '../constants'
 import { nh, match, fmtD } from '../utils'
-import { apiPut, apiDelete } from '../api'
+import { apiGet, apiPut, apiDelete } from '../api'
 import { Modal, Btn, Badge, FBar, FSel, SearchBar, inp } from '../components/ui'
 import { useToast, useConfirm } from '../context/toast'
 
@@ -30,6 +30,22 @@ export function TabNombramientos({ data, setData, userPermisos, logMov, bitacora
   const nomEstId = nombre => (data.nombramiento_estado || []).find(x => x.estado === nombre)?.estadoid || null
 
   const [fN, setFN] = useState({ q: '', estado: '', verificacion: '', sede: '' })
+  const [serverRowsN, setServerRowsN] = useState(null)
+  const [loadingN, setLoadingN] = useState(false)
+
+  useEffect(() => {
+    const hasFilter = fN.estado || fN.verificacion || fN.sede
+    if (!hasFilter) { setServerRowsN(null); return }
+    setLoadingN(true)
+    const p = new URLSearchParams()
+    if (fN.estado) p.set('estado', fN.estado)
+    if (fN.verificacion) p.set('verificacionId', fN.verificacion)
+    if (fN.sede) p.set('sedeId', fN.sede)
+    apiGet('/nombramientos?' + p.toString())
+      .then(rows => setServerRowsN(Array.isArray(rows) ? rows : []))
+      .catch(() => setServerRowsN(null))
+      .finally(() => setLoadingN(false))
+  }, [fN.estado, fN.verificacion, fN.sede])
 
   useEffect(() => {
     if (jumpQ?.tab === 'nombramientos' && jumpQ.q) setFN(p => ({ ...p, q: jumpQ.q }))
@@ -40,8 +56,9 @@ export function TabNombramientos({ data, setData, userPermisos, logMov, bitacora
   const [scrollTop, setScrollTop] = useState(0)
   const tableScrollRef = useRef(null)
 
-  const filtN = useMemo(() =>
-    data.nombramientos.filter(n => {
+  const filtN = useMemo(() => {
+    const base = serverRowsN || data.nombramientos
+    return base.filter(n => {
       const prof = gP(n.profesorId), plz = gPl(n.plazaId), proy = gPy(n.proyectoId), uni = gU(n.unidadId)
       const textMatch = !fN.q ||
         match(prof?.nombre, fN.q) || match(plz?.codigo, fN.q) || match(plz?.cf, fN.q) ||
@@ -52,12 +69,9 @@ export function TabNombramientos({ data, setData, userPermisos, logMov, bitacora
         match(gVerif(n.verificacionId)?.nombre, fN.q) ||
         match(n.estado, fN.q) || match(String(n.horas || ''), fN.q) ||
         match(n.observaciones, fN.q) || match(n.acuerdo, fN.q)
-      return textMatch &&
-        (!fN.estado || n.estado === fN.estado) &&
-        (!fN.verificacion || n.verificacionId === Number(fN.verificacion)) &&
-        (!fN.sede || gSede(uni?.sedeId)?.id === Number(fN.sede))
+      return textMatch
     })
-  , [data.nombramientos, data.profesores, data.plazas, data.proyectos, data.unidades, data.sedes, data.tiposNombramiento, data.verificaciones, fN])
+  }, [serverRowsN, data.nombramientos, data.profesores, data.plazas, data.proyectos, data.unidades, data.sedes, data.tiposNombramiento, data.verificaciones, fN.q])
 
   useEffect(() => {
     setScrollTop(0)

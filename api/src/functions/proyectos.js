@@ -30,8 +30,36 @@ app.http('proyectos', {
       const id = req.params.id ? parseInt(req.params.id) : null;
 
       if (req.method === 'GET') {
-        const r = await pool.request().query('SELECT * FROM proyectos ORDER BY nombre');
-        return { status: 200, headers: CORS, jsonBody: r.recordset };
+        const q = req.query
+        const conditions = []
+        const dbReq = pool.request()
+        if (q.get('estado')) {
+          conditions.push('estado=@estado')
+          dbReq.input('estado', sql.NVarChar, q.get('estado'))
+        }
+        if (q.get('tipoId')) {
+          conditions.push('tipoId=@tipoId')
+          dbReq.input('tipoId', sql.Int, parseInt(q.get('tipoId')))
+        }
+        if (q.get('unidadId')) {
+          conditions.push('unidadId=@unidadId')
+          dbReq.input('unidadId', sql.Int, parseInt(q.get('unidadId')))
+        }
+        if (q.get('subcategoria')) {
+          conditions.push('subcategoria=@subcategoria')
+          dbReq.input('subcategoria', sql.NVarChar, q.get('subcategoria'))
+        }
+        if (q.get('gestorId')) {
+          conditions.push('gestorId=@gestorId')
+          dbReq.input('gestorId', sql.Int, parseInt(q.get('gestorId')))
+        }
+        if (q.get('coordinadorId')) {
+          conditions.push('coordinadorId=@coordinadorId')
+          dbReq.input('coordinadorId', sql.Int, parseInt(q.get('coordinadorId')))
+        }
+        const where = conditions.length ? ' WHERE ' + conditions.join(' AND ') : ''
+        const r = await dbReq.query('SELECT * FROM proyectos' + where + ' ORDER BY nombre')
+        return { status: 200, headers: CORS, jsonBody: r.recordset }
       }
 
       if (req.method === 'DELETE') {

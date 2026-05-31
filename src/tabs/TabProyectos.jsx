@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { NAVY, BLUE, RED } from '../constants'
 import { nh, match, fmtD } from '../utils'
-import { apiPost, apiPut, apiDelete } from '../api'
+import { apiGet, apiPost, apiPut, apiDelete } from '../api'
 import { Modal, Field, Btn, Badge, FBar, FSel, SearchBar, SearchableSelect, EmptyState, inp } from '../components/ui'
 import { NomTable } from './TabCatalogos'
 import { useToast, useConfirm } from '../context/toast'
@@ -20,6 +20,25 @@ export function TabProyectos({ data, setData, userPermisos, logMov, bitacora, dU
   const gNomEst = id => (data.nombramiento_estado || []).find(x => x.estadoid === Number(id))
 
   const [fPy, setFPy] = useState({ q: '', tipo: '', estado: '', unidad: '', subcat: '', gestor: '', coordinador: '' })
+  const [serverRowsPy, setServerRowsPy] = useState(null)
+  const [loadingPy, setLoadingPy] = useState(false)
+
+  useEffect(() => {
+    const hasFilter = fPy.tipo || fPy.estado || fPy.unidad || fPy.subcat || fPy.gestor || fPy.coordinador
+    if (!hasFilter) { setServerRowsPy(null); return }
+    setLoadingPy(true)
+    const p = new URLSearchParams()
+    if (fPy.tipo) p.set('tipoId', fPy.tipo)
+    if (fPy.estado) p.set('estado', fPy.estado)
+    if (fPy.unidad) p.set('unidadId', fPy.unidad)
+    if (fPy.subcat) p.set('subcategoria', fPy.subcat)
+    if (fPy.gestor) p.set('gestorId', fPy.gestor)
+    if (fPy.coordinador) p.set('coordinadorId', fPy.coordinador)
+    apiGet('/proyectos?' + p.toString())
+      .then(rows => setServerRowsPy(Array.isArray(rows) ? rows : []))
+      .catch(() => setServerRowsPy(null))
+      .finally(() => setLoadingPy(false))
+  }, [fPy.tipo, fPy.estado, fPy.unidad, fPy.subcat, fPy.gestor, fPy.coordinador])
 
   useEffect(() => {
     if (jumpQ?.tab === 'proyectos' && jumpQ.q) setFPy(p => ({ ...p, q: jumpQ.q }))
@@ -28,8 +47,9 @@ export function TabProyectos({ data, setData, userPermisos, logMov, bitacora, dU
   const [form, setForm] = useState({})
   const [histModal, setHistModal] = useState(null)
 
-  const filtPy = useMemo(() =>
-    data.proyectos.filter(p => {
+  const filtPy = useMemo(() => {
+    const base = serverRowsPy || data.proyectos
+    return base.filter(p => {
       const uni = gU(p.unidadId)
       const textMatch = !fPy.q ||
         match(p.nombre, fPy.q) || match(p.codigo, fPy.q) || match(p.estado, fPy.q) ||
@@ -38,15 +58,9 @@ export function TabProyectos({ data, setData, userPermisos, logMov, bitacora, dU
         match(gGestor(p.gestorId)?.nombre, fPy.q) || match(gP(p.coordinadorId)?.nombre, fPy.q) ||
         match(uni?.nombre, fPy.q) || match(uni?.codigo, fPy.q) ||
         match(gSede(uni?.sedeId)?.nombre, fPy.q)
-      return textMatch &&
-        (!fPy.tipo || Number(p.tipoId) === Number(fPy.tipo)) &&
-        (!fPy.estado || p.estado === fPy.estado) &&
-        (!fPy.unidad || Number(p.unidadId) === Number(fPy.unidad)) &&
-        (!fPy.subcat || (p.subcategoria || '') === fPy.subcat) &&
-        (!fPy.gestor || Number(p.gestorId) === Number(fPy.gestor)) &&
-        (!fPy.coordinador || Number(p.coordinadorId) === Number(fPy.coordinador))
+      return textMatch
     }).sort((a, b) => String(a.codigo || '').localeCompare(String(b.codigo || '')))
-  , [data.proyectos, data.tiposActividad, data.fuentes, data.vinculaciones, data.gestores, data.profesores, data.unidades, data.sedes, fPy])
+  }, [serverRowsPy, data.proyectos, data.tiposActividad, data.fuentes, data.vinculaciones, data.gestores, data.profesores, data.unidades, data.sedes, fPy.q])
 
   const subcats = form.tipoId
     ? (data.tiposActividad.find(t => t.id === parseInt(form.tipoId))?.subcategorias || [])

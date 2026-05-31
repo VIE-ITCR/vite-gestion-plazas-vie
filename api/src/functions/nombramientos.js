@@ -29,8 +29,24 @@ app.http('nombramientos', {
       const id = req.params.id ? parseInt(req.params.id) : null;
 
       if (req.method === 'GET') {
-        const r = await pool.request().query('SELECT * FROM nombramientos ORDER BY inicio');
-        return { status: 200, headers: CORS, jsonBody: r.recordset };
+        const q = req.query
+        const conditions = []
+        const dbReq = pool.request()
+        if (q.get('estado')) {
+          conditions.push('estado=@estado')
+          dbReq.input('estado', sql.NVarChar, q.get('estado'))
+        }
+        if (q.get('verificacionId')) {
+          conditions.push('verificacionId=@verificacionId')
+          dbReq.input('verificacionId', sql.Int, parseInt(q.get('verificacionId')))
+        }
+        if (q.get('sedeId')) {
+          conditions.push('unidadId IN (SELECT id FROM unidades WHERE sedeId=@sedeId)')
+          dbReq.input('sedeId', sql.Int, parseInt(q.get('sedeId')))
+        }
+        const where = conditions.length ? ' WHERE ' + conditions.join(' AND ') : ''
+        const r = await dbReq.query('SELECT * FROM nombramientos' + where + ' ORDER BY inicio')
+        return { status: 200, headers: CORS, jsonBody: r.recordset }
       }
 
       if (req.method === 'DELETE') {
