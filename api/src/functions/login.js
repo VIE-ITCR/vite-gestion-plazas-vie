@@ -1,7 +1,8 @@
 const { app } = require('@azure/functions');
 const { getPool, sql } = require('../db');
 const { signToken } = require('../auth');
-const { CORS } = require('../helpers');
+const { CORS, sanitize } = require('../helpers');
+const { checkRateLimit, getClientIp } = require('../rate-limiter');
 const bcrypt = require('bcryptjs');
 
 app.http('login', {
@@ -11,9 +12,12 @@ app.http('login', {
   handler: async (req) => {
     if (req.method === 'OPTIONS') return { status: 200, headers: CORS };
     try {
-      const { email, password } = await req.json();
+      const body = await req.json();
+      const email = sanitize(body.email, 200).toLowerCase();
+      const password = body.password ? String(body.password).slice(0, 200) : '';
       if (!email || !password)
         return { status: 400, headers: CORS, jsonBody: { error: 'Correo y contraseña requeridos.' } };
+      checkRateLimit(getClientIp(req), email);
 
       const pool = await getPool();
       const result = await pool.request()

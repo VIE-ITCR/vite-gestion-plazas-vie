@@ -1,7 +1,7 @@
 const { app } = require('@azure/functions');
 const { getPool, sql } = require('../db');
 const { requirePerm } = require('../auth');
-const { CORS, validatePassword } = require('../helpers');
+const { CORS, validatePassword, sanitize } = require('../helpers');
 const bcrypt = require('bcryptjs');
 const { randomUUID } = require('crypto');
 
@@ -65,8 +65,8 @@ app.http('usuarios', {
         const primaryRolId = (body.roles || [])[0]?.rolId || body.rolId || 'viewer';
         await pool.request()
           .input('uid', sql.NVarChar, newUid)
-          .input('nombre', sql.NVarChar, body.nombre || '')
-          .input('email', sql.NVarChar, body.email)
+          .input('nombre', sql.NVarChar, sanitize(body.nombre, 200))
+          .input('email', sql.NVarChar, sanitize(body.email, 200).toLowerCase())
           .input('hash', sql.NVarChar, hash)
           .input('rolId', sql.NVarChar, primaryRolId)
           .query('INSERT INTO usuarios (uid,nombre,email,password_hash,rolId,activo) VALUES (@uid,@nombre,@email,@hash,@rolId,1)');
@@ -77,7 +77,7 @@ app.http('usuarios', {
       if (req.method === 'PUT') {
         const r = pool.request()
           .input('uid', sql.NVarChar, uid)
-          .input('nombre', sql.NVarChar, body.nombre || '')
+          .input('nombre', sql.NVarChar, sanitize(body.nombre, 200))
           .input('activo', sql.Bit, body.activo ? 1 : 0);
         const primaryRolId = (body.roles || [])[0]?.rolId || body.rolId;
         if (primaryRolId) r.input('rolId', sql.NVarChar, primaryRolId);
