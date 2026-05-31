@@ -8,6 +8,7 @@ import { nh, r2, validarPwd, fmtD } from './utils'
 import { NomModal } from './components/NomModal'
 import { AppProviders, useToast, useConfirm } from './context/toast'
 import { GlobalSearch } from './components/GlobalSearch'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 const TabResumen      = lazy(() => import('./tabs/TabResumen').then(m => ({ default: m.TabResumen })))
 const TabCatalogos    = lazy(() => import('./tabs/TabCatalogos').then(m => ({ default: m.TabCatalogos })))
@@ -80,6 +81,44 @@ function AppInner() {
   const [jumpQ, setJumpQ] = useState(null)
   const _acc = useRef(DATA_INICIAL)
 
+  const reloadCol = useCallback(async (col) => {
+    try {
+      if (col === 'presupuesto') {
+        const rawP = await apiGet('/presupuesto')
+        if (rawP && typeof rawP === 'object') setPresupuestos(rawP)
+        return
+      }
+      if (col === 'bitacora') {
+        const rawB = await apiGet('/bitacora')
+        if (Array.isArray(rawB)) setBitacora([...rawB].sort((a, b) =>
+          a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : (a.hora || '').localeCompare(b.hora || '')))
+        return
+      }
+      let arr = await apiGet('/' + col)
+      if (!Array.isArray(arr)) arr = []
+      arr = arr.map(dat => {
+        const d = { ...dat, id: Number(dat.id) || 0 }
+        FK_NUM.forEach(k => { if (d[k] !== undefined && d[k] !== null && d[k] !== '') d[k] = Number(d[k]) || d[k] })
+        if (Array.isArray(d.unidades)) d.unidades = d.unidades.map(x => Number(x) || x)
+        return d
+      })
+      if (SORT_NOMBRE.includes(col)) arr.sort((a, b) => {
+        const x = (a.nombre || a.codigo || '').trim().toLowerCase()
+        const y = (b.nombre || b.codigo || '').trim().toLowerCase()
+        return x < y ? -1 : 1
+      })
+      if (col === 'nombramientos' || col === 'proyectos') {
+        const eNomMap = {}
+        ;(_acc.current.nombramiento_estado || []).forEach(e => { eNomMap[e.estadoid] = e.estado })
+        arr = arr.map(item => ({ ...item, estado: eNomMap[item.estadoId] || item.estado || '' }))
+      }
+      _acc.current = { ..._acc.current, [col]: arr }
+      setData(prev => ({ ...prev, [col]: arr }))
+    } catch (e) {
+      console.error('reloadCol error:', col, e.message)
+    }
+  }, [])
+
   useEffect(() => {
     const h = e => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); setShowGlobalSearch(s => !s) }
@@ -144,7 +183,7 @@ function AppInner() {
       return
     }
     setLoading(true)
-    let pollDelay = 30000
+    let pollDelay = 120000
     let pollTimer = null
 
     function loadAll(silent) {
@@ -237,9 +276,21 @@ function AppInner() {
       }, pollDelay)
     }
 
+    function handleVisibility() {
+      if (document.hidden) {
+        if (pollTimer) { clearTimeout(pollTimer); pollTimer = null }
+      } else {
+        if (!pollTimer) loadAll(true).finally(schedulePoll)
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+
     loadAll(false)
     schedulePoll()
-    return () => { if (pollTimer) clearTimeout(pollTimer) }
+    return () => {
+      if (pollTimer) clearTimeout(pollTimer)
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
   }, [authUser])
 
   const today = new Date()
@@ -420,6 +471,7 @@ function AppInner() {
       logMov(isNewNom ? 'Crear' : 'Editar', 'nombramientos', `${prof2?.nombre || '?'} → ${plaza2?.codigo || '?'}`, saved.id, 'nombramientos')
       closeNomModal()
       toast.success('Nombramiento guardado.')
+      reloadCol('nombramientos')
     }).catch(e => toast.error('Error al guardar: ' + e.message))
   }
 
@@ -680,7 +732,7 @@ function AppInner() {
       }>
       <div ref={contentRef} style={{ flex: 1, overflow: 'auto', padding: 22 }}>
         {tab === 'catalogos' && (
-          <TabCatalogos
+          <ErrorBoundary name="Catálogos"><TabCatalogos
             data={data}
             setData={setData}
             userPermisos={userPermisos}
@@ -692,10 +744,10 @@ function AppInner() {
             gPy={gPy}
             dU={dU}
             jumpQ={jumpQ}
-          />
+          /></ErrorBoundary>
         )}
         {tab === 'proyectos' && (
-          <TabProyectos
+          <ErrorBoundary name="Proyectos"><TabProyectos
             data={data}
             setData={setData}
             userPermisos={userPermisos}
@@ -707,10 +759,11 @@ function AppInner() {
             gPy={gPy}
             openEditNom={openEditNom}
             jumpQ={jumpQ}
-          />
+            reloadCol={reloadCol}
+          /></ErrorBoundary>
         )}
         {tab === 'plazas' && (
-          <TabPlazas
+          <ErrorBoundary name="Plazas"><TabPlazas
             data={data}
             setData={setData}
             userPermisos={userPermisos}
@@ -723,10 +776,11 @@ function AppInner() {
             gPy={gPy}
             openEditNom={openEditNom}
             jumpQ={jumpQ}
-          />
+            reloadCol={reloadCol}
+          /></ErrorBoundary>
         )}
         {tab === 'nombramientos' && (
-          <TabNombramientos
+          <ErrorBoundary name="Nombramientos"><TabNombramientos
             data={data}
             setData={setData}
             userPermisos={userPermisos}
@@ -739,10 +793,10 @@ function AppInner() {
             openNewNom={openNewNom}
             openEditNom={openEditNom}
             jumpQ={jumpQ}
-          />
+          /></ErrorBoundary>
         )}
         {tab === 'alertas' && (
-          <TabAlertas
+          <ErrorBoundary name="Alertas"><TabAlertas
             data={data}
             a30={a30} a60={a60} a90={a90}
             py30={py30} py60={py60} py90={py90}
@@ -750,13 +804,13 @@ function AppInner() {
             nomEstId={nomEstId}
             logMov={logMov}
             dU={dU}
-          />
+          /></ErrorBoundary>
         )}
         {tab === 'bitacora' && (
-          <TabBitacora bitacora={bitacora} userProfile={userProfile} />
+          <ErrorBoundary name="Bitácora"><TabBitacora bitacora={bitacora} userProfile={userProfile} /></ErrorBoundary>
         )}
         {tab === 'resumen' && (
-          <TabResumen
+          <ErrorBoundary name="Resumen"><TabResumen
             data={data}
             today={today}
             totalH={totalH}
@@ -764,16 +818,16 @@ function AppInner() {
             a30={a30}
             hUsadas={hUsadas}
             presupuestos={presupuestos}
-          />
+          /></ErrorBoundary>
         )}
         {tab === 'disponibilidad' && (
-          <TabDisponibilidad data={data} hUsadas={hUsadas} gP={gP} gPl={gPl} gPy={gPy} dU={dU} />
+          <ErrorBoundary name="Disponibilidad"><TabDisponibilidad data={data} hUsadas={hUsadas} gP={gP} gPl={gPl} gPy={gPy} dU={dU} /></ErrorBoundary>
         )}
         {tab === 'presupuesto' && (
-          <TabPresupuesto data={data} presupuestos={presupuestos} setPresupuestos={setPresupuestos} gT={gT} />
+          <ErrorBoundary name="Presupuesto"><TabPresupuesto data={data} presupuestos={presupuestos} setPresupuestos={setPresupuestos} gT={gT} /></ErrorBoundary>
         )}
         {tab === 'reportes' && (
-          <TabReportes
+          <ErrorBoundary name="Reportes"><TabReportes
             data={data}
             presupuestos={presupuestos}
             gP={gP} gPl={gPl} gPy={gPy} gT={gT} gTN={gTN}
@@ -783,31 +837,31 @@ function AppInner() {
             a30={a30} a60={a60} a90={a90} dU={dU}
             totalCat={totalCat} totalProyecto={totalProyecto}
             today={today}
-          />
+          /></ErrorBoundary>
         )}
         {tab === 'repProf' && (
-          <TabRepProf data={data} gP={gP} gPl={gPl} gPy={gPy} gTN={gTN} dU={dU} />
+          <ErrorBoundary name="Reporte Profesores"><TabRepProf data={data} gP={gP} gPl={gPl} gPy={gPy} gTN={gTN} dU={dU} /></ErrorBoundary>
         )}
         {tab === 'datos' && (
-          <TabDatos
+          <ErrorBoundary name="Datos"><TabDatos
             data={data} gT={gT} gU={gU} gSede={gSede}
             gPl={gPl} gPy={gPy} gTN={gTN} gP={gP}
             a30={a30} a60={a60} a90={a90}
             getP={getP} totalCat={totalCat}
             bitacora={bitacora} presupuestos={presupuestos}
-          />
+          /></ErrorBoundary>
         )}
         {tab === 'usuarios' && (
-          <TabUsuarios
+          <ErrorBoundary name="Usuarios"><TabUsuarios
             roles={roles} usuariosList={usuariosList}
             currentUid={authUser?.uid}
             setUsuariosList={setUsuariosList}
             setRoles={setRoles}
             unidades={data.unidades}
-          />
+          /></ErrorBoundary>
         )}
         {tab === 'gantt' && (
-          <TabGantt data={data} gP={gP} gPl={gPl} gPy={gPy} />
+          <ErrorBoundary name="Gantt"><TabGantt data={data} gP={gP} gPl={gPl} gPy={gPy} /></ErrorBoundary>
         )}
       </div>
       </Suspense>

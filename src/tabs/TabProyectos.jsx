@@ -6,7 +6,7 @@ import { Modal, Field, Btn, Badge, FBar, FSel, SearchBar, SearchableSelect, Empt
 import { NomTable } from './TabCatalogos'
 import { useToast, useConfirm } from '../context/toast'
 
-export function TabProyectos({ data, setData, userPermisos, logMov, bitacora, dU, gP, gPl, gPy, openEditNom, jumpQ }) {
+export function TabProyectos({ data, setData, userPermisos, logMov, bitacora, dU, gP, gPl, gPy, openEditNom, jumpQ, reloadCol }) {
   const toast = useToast()
   const showConfirm = useConfirm()
   const pE = k => (userPermisos[k] || 'none') === 'write'
@@ -68,6 +68,7 @@ export function TabProyectos({ data, setData, userPermisos, logMov, bitacora, dU
     if (!await showConfirm('¿Eliminar "' + nombre + '"?', { danger: true, okText: 'Eliminar' })) return
     apiDelete('/proyectos/' + id).then(() => {
       setData(prev => ({ ...prev, proyectos: prev.proyectos.filter(x => x.id !== id) }))
+      reloadCol?.('proyectos')
     }).catch(e => toast.error('Error al eliminar: ' + e.message))
     logMov('Eliminar', 'proyectos', nombre, id, 'proyectos')
   }
@@ -124,6 +125,7 @@ export function TabProyectos({ data, setData, userPermisos, logMov, bitacora, dU
       logMov(isNew ? 'Crear' : 'Editar', 'proyectos', detalle, saved.id, 'proyectos')
       closeM()
       toast.success('Proyecto guardado.')
+      reloadCol?.('proyectos')
     }).catch(e => toast.error('Error al guardar: ' + e.message))
   }
 

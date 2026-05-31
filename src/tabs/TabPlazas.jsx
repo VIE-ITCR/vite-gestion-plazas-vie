@@ -18,7 +18,7 @@ const PLZ_COL_DEFS = [
   ['fin', 'Fin'], ['estado', 'Estado'], ['obs', 'Obs.'], ['acuerdo', 'Acuerdo']
 ]
 
-export function TabPlazas({ data, setData, userPermisos, logMov, bitacora, dU, hUsadas, gP, gPl, gPy, openEditNom, jumpQ }) {
+export function TabPlazas({ data, setData, userPermisos, logMov, bitacora, dU, hUsadas, gP, gPl, gPy, openEditNom, jumpQ, reloadCol }) {
   const toast = useToast()
   const showConfirm = useConfirm()
   const pE = k => (userPermisos[k] || 'none') === 'write'
@@ -86,6 +86,7 @@ export function TabPlazas({ data, setData, userPermisos, logMov, bitacora, dU, h
     if (!await showConfirm('¿Eliminar "' + nombre + '"?', { danger: true, okText: 'Eliminar' })) return
     apiDelete('/plazas/' + id).then(() => {
       setData(prev => ({ ...prev, plazas: prev.plazas.filter(x => x.id !== id) }))
+      reloadCol?.('plazas')
     }).catch(e => toast.error('Error al eliminar: ' + e.message))
     logMov('Eliminar', 'plazas', nombre, id, 'plazas')
   }
@@ -114,6 +115,7 @@ export function TabPlazas({ data, setData, userPermisos, logMov, bitacora, dU, h
       logMov(isNew ? 'Crear' : 'Editar', 'plazas', detalle, saved.id, 'plazas')
       closeM()
       toast.success('Plaza guardada.')
+      reloadCol?.('plazas')
     }).catch(e => toast.error('Error al guardar: ' + e.message))
   }
 
