@@ -114,6 +114,7 @@ export function TabReportes({ data, presupuestos, gP, gPl, gPy, gT, gTN, gU, gSe
   const [expandedGrupos, setExpandedGrupos] = useState(() => { const init = {}; REPORT_GRUPOS.forEach(g => { init[g.label] = g.ids.includes(activeRep) }); return init })
   const [hxTDRep, setHxTDRep] = useState(() => { const v = parseInt(localStorage.getItem('vie_hxtd') || '40'); return v > 1 ? v : 40 })
   const [tipoNomTDRep, setTipoNomTDRep] = useState([])
+  const proyectosContab = data.proyectos.filter(p => new Set(data.tiposActividad.filter(t => (t.contabilizar || 'Sí') !== 'No').map(t => t.id)).has(p.tipoId))
 
   useEffect(() => { try { localStorage.setItem('vie_activeRep', activeRep) } catch {} }, [activeRep])
 
@@ -254,7 +255,7 @@ export function TabReportes({ data, presupuestos, gP, gPl, gPy, gT, gTN, gU, gSe
                   const unidSede = new Map(data.unidades.map(u => [u.id, u.sedeId]))
                   const activosBase = data.nombramientos.filter(n => n.estado === 'Activo')
                   const activos = tipoNomTDRep.length > 0 ? activosBase.filter(n => tipoNomTDRep.includes(String(n.tipoNombramientoId))) : activosBase
-                  const filasTipo = data.tiposActividad.map(t => { const ids = new Set(data.proyectos.filter(p => p.tipoId === t.id).map(p => p.id)); const h = r2(activos.filter(n => ids.has(n.proyectoId)).reduce((s, n) => s + nh(n.horas), 0)); return [t.nombre, h, r2(h / hxTDRep)] })
+                  const filasTipo = data.tiposActividad.map(t => { const ids = new Set(proyectosContab.filter(p => p.tipoId === t.id).map(p => p.id)); const h = r2(activos.filter(n => ids.has(n.proyectoId)).reduce((s, n) => s + nh(n.horas), 0)); return [t.nombre, h, r2(h / hxTDRep)] })
                   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Tipo de Proyecto', 'Horas activas', 'Tiempos docentes (÷' + hxTDRep + 'h)'], ...filasTipo]), 'Por Tipo')
                   const filasSede = data.sedes.map(s => { const h = r2(activos.filter(n => unidSede.get(n.unidadId) === s.id).reduce((sum, n) => sum + nh(n.horas), 0)); return [s.nombre, h, r2(h / hxTDRep)] })
                   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Sede', 'Horas activas', 'Tiempos docentes (÷' + hxTDRep + 'h)'], ...filasSede]), 'Por Sede')
@@ -276,7 +277,7 @@ export function TabReportes({ data, presupuestos, gP, gPl, gPy, gT, gTN, gU, gSe
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <Card title="📊 Por Tipo de Proyecto">
-                  <ChartTiemposDocentes tiposActividad={data.tiposActividad} proyectos={data.proyectos} nombramientos={data.nombramientos} hxTD={hxTDRep} tipoNomTD={tipoNomTDRep} />
+                  <ChartTiemposDocentes tiposActividad={data.tiposActividad} proyectos={proyectosContab} nombramientos={data.nombramientos} hxTD={hxTDRep} tipoNomTD={tipoNomTDRep} />
                 </Card>
                 <Card title="📊 Por Sede">
                   <ChartTiemposDocentesSede sedes={data.sedes} unidades={data.unidades} nombramientos={data.nombramientos} hxTD={hxTDRep} tipoNomTD={tipoNomTDRep} />
@@ -285,7 +286,7 @@ export function TabReportes({ data, presupuestos, gP, gPl, gPy, gT, gTN, gU, gSe
                   {(() => {
                     const activosBase = data.nombramientos.filter(n => n.estado === 'Activo')
                     const activos = tipoNomTDRep.length > 0 ? activosBase.filter(n => tipoNomTDRep.includes(String(n.tipoNombramientoId))) : activosBase
-                    const filas = data.tiposActividad.map((t, i) => { const ids = new Set(data.proyectos.filter(p => p.tipoId === t.id).map(p => p.id)); const h = r2(activos.filter(n => ids.has(n.proyectoId)).reduce((s, n) => s + nh(n.horas), 0)); return { ...t, horas: h, tiempos: r2(h / hxTDRep), color: CHART_COLORS[i % CHART_COLORS.length] } })
+                    const filas = data.tiposActividad.map((t, i) => { const ids = new Set(proyectosContab.filter(p => p.tipoId === t.id).map(p => p.id)); const h = r2(activos.filter(n => ids.has(n.proyectoId)).reduce((s, n) => s + nh(n.horas), 0)); return { ...t, horas: h, tiempos: r2(h / hxTDRep), color: CHART_COLORS[i % CHART_COLORS.length] } })
                     const totH = r2(filas.reduce((s, f) => s + f.horas, 0)); const totTD = r2(filas.reduce((s, f) => s + f.tiempos, 0))
                     if (!totH) return <p style={{ fontSize: 12, color: '#bbb', margin: 0 }}>Sin nombramientos activos con proyecto asociado.</p>
                     return <TablaColapsable><table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}><thead><tr style={{ background: '#f8f9ff' }}><th style={{ textAlign: 'left', padding: '7px 10px', color: '#888', fontWeight: 700, fontSize: 11, borderBottom: '1px solid #e8e8f0' }}>Tipo de Proyecto</th><th style={{ textAlign: 'right', padding: '7px 10px', color: NAVY, fontWeight: 700, fontSize: 11, borderBottom: '1px solid #e8e8f0' }}>Horas activas</th><th style={{ textAlign: 'right', padding: '7px 10px', color: TEAL, fontWeight: 700, fontSize: 11, borderBottom: '1px solid #e8e8f0' }}>Tiempos docentes (÷{hxTDRep}h)</th></tr></thead><tbody>{filas.map((f, i) => <tr key={f.id} style={{ borderBottom: '1px solid #f0f0f8', background: i % 2 === 0 ? '#fff' : '#fafbff' }}><td style={{ padding: '7px 10px' }}><div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: f.color, display: 'inline-block' }} /><span style={{ fontWeight: 600, color: f.color }}>{f.nombre}</span></div></td><td style={{ textAlign: 'right', padding: '7px 10px', color: f.horas > 0 ? '#333' : '#ccc', fontWeight: f.horas > 0 ? 600 : 400 }}>{f.horas > 0 ? f.horas + 'h' : '—'}</td><td style={{ textAlign: 'right', padding: '7px 10px', fontWeight: 700, color: f.tiempos > 0 ? TEAL : '#ccc' }}>{f.tiempos > 0 ? f.tiempos : '—'}</td></tr>)}</tbody><tfoot><tr style={{ background: '#f0f4f8', borderTop: '2px solid #e0e8f0' }}><td style={{ padding: '7px 10px', fontWeight: 700, color: NAVY }}>Total</td><td style={{ textAlign: 'right', padding: '7px 10px', fontWeight: 700, color: NAVY }}>{totH}h</td><td style={{ textAlign: 'right', padding: '7px 10px', fontWeight: 700, color: TEAL }}>{totTD}</td></tr></tfoot></table></TablaColapsable>
